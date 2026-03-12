@@ -1,6 +1,6 @@
 # Artnoc: Findings & Engine Deficiencies
 
-Findings from building a Contra-style side-scrolling action game ("Artnoc") using the HyperNova ECS engine.
+Findings from building a side-scrolling action game ("Artnoc") using the HyperNova ECS engine.
 
 ---
 
