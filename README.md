@@ -1,2 +1,2 @@
-# artnoc_game
+# Artnoc
 Side-scroller action game
