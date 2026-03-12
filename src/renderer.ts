@@ -1,4 +1,4 @@
-import { query } from '@nova/core';
+import { query, clamp } from '@nova/core';
 import type { World } from '@nova/core';
 import {
   Position, Velocity, Player, Enemy, Projectile, Collider,
@@ -27,7 +27,7 @@ function colorToAlpha(packed: number, a: number): string {
  * Canvas2D renderer for Artnoc.
  * Draws everything relative to the camera scroll position.
  */
-export class ArtnorRenderer {
+export class ArtnocRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private world: World;
@@ -374,8 +374,10 @@ export class ArtnorRenderer {
       const maxRadius = Explosion.radius[eid];
       const color = Sprite.color[eid];
 
-      // Expand then shrink
-      const progress = 1 - timer / 0.4;
+      // Expand then shrink. Sprite.animTimer stores the initial duration;
+      // fall back to 0.4s if unset. Clamp progress to [0,1].
+      const initDuration = Sprite.animTimer[eid] || 0.4;
+      const progress = clamp(1 - timer / initDuration, 0, 1);
       const radius = maxRadius * (progress < 0.5 ? progress * 2 : 2 - progress * 2);
       const alpha = 1 - progress;
 

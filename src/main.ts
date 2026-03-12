@@ -9,7 +9,7 @@ import type { InputData, GameStateData } from './components.js';
 import { getGameplaySystems, Level } from './systems.js';
 import type { LevelResource } from './systems.js';
 import { createLevel1 } from './level.js';
-import { ArtnorRenderer } from './renderer.js';
+import { ArtnocRenderer } from './renderer.js';
 
 // ─── Initialize Engine ───
 
@@ -79,11 +79,16 @@ engine.addStage('cleanup', systems.cleanup);
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 canvas.width = SCREEN_W;
 canvas.height = SCREEN_H;
-const renderer = new ArtnorRenderer(canvas, engine.world);
+const renderer = new ArtnocRenderer(canvas, engine.world);
 
 // ─── Input Handling ───
 
 const keysDown = new Set<string>();
+
+const GAME_KEYS = new Set([
+  'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+  'KeyZ', 'KeyX', 'Enter',
+]);
 
 document.addEventListener('keydown', (e) => {
   keysDown.add(e.code);
@@ -96,12 +101,12 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  e.preventDefault();
+  if (GAME_KEYS.has(e.code)) e.preventDefault();
 });
 
 document.addEventListener('keyup', (e) => {
   keysDown.delete(e.code);
-  e.preventDefault();
+  if (GAME_KEYS.has(e.code)) e.preventDefault();
 });
 
 function updateInput(): void {

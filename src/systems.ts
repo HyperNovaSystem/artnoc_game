@@ -129,7 +129,7 @@ export const GravitySystem = defineSystem({
 export const PhysicsSystem = defineSystem({
   name: 'Physics',
   query: query(Position, Velocity, Collider).not(Dead),
-  execute({ entities, dt, resources, world }) {
+  execute({ entities, dt, resources, world, events }) {
     const level = resources.get(Level);
     const gs = resources.get(GameState);
     const platforms = level.data.platforms;
@@ -213,9 +213,9 @@ export const PhysicsSystem = defineSystem({
         const maxX = Math.min(gs.scrollX + SCREEN_W - PLAYER_W / 2, level.data.width - PLAYER_W / 2);
         Position.x[eid] = clamp(Position.x[eid], minX, maxX);
 
-        // Kill if fallen off bottom
+        // Kill if fallen off bottom (use full death flow so lives/phase stay consistent)
         if (Position.y[eid] > SCREEN_H + 50) {
-          world.addComponent(eid, Dead);
+          killPlayer(eid, world, events, gs);
         }
       }
     }
@@ -518,24 +518,9 @@ export const HitDetectionSystem = defineSystem({
             // Hit!
             const eType = Enemy.enemyType[eEid];
             const def = ENEMY_DEFS[eType];
-            // Reduce health (stored as aiTimer repurposed... actually let's use a simple approach)
-            // Since we don't have a Health component on enemies in this design,
-            // we track hits via a decrement approach. For multi-hit enemies,
-            // we use the aiTimer field creatively or just add a health counter.
-            // Simple approach: each hit does damage, enemies have implicit HP.
-            // We'll track remaining HP in Enemy.fireCooldown as negative hack...
-            // Actually, let's be cleaner: use the Sprite.frame to count hits taken
-            // Wait, that's also bad. Let's just use a proper approach:
-
+            // Enemy HP is stored in Sprite.animTimer (initialized from ENEMY_DEFS on spawn)
+            // and decremented by projectile damage here until it reaches zero or below.
             const damage = Projectile.damage[bEid];
-            // We need enemy health tracking. Let's store it in the Collider.offsetX/Y
-            // as a hack... No, that's terrible.
-            //
-            // Better: We'll deduct from the Enemy component. We don't have a health
-            // field there, so we'll reuse a creative approach. Actually the simplest:
-            // store health in Sprite.animTimer (it's a f32, enemies don't animate much).
-            // On spawn, set animTimer = health. On hit, reduce it.
-
             Sprite.animTimer[eEid] -= damage;
             if (Sprite.animTimer[eEid] <= 0) {
               world.addComponent(eEid, Dead);
@@ -551,9 +536,10 @@ export const HitDetectionSystem = defineSystem({
               // Spawn explosion
               const exp = world.spawn();
               world.addComponent(exp, Position, { x: Position.x[eEid], y: Position.y[eEid] });
-              world.addComponent(exp, Explosion, { timer: 0.4, radius: eType === 4 ? 40 : 16 });
+              const expDuration = 0.4;
+              world.addComponent(exp, Explosion, { timer: expDuration, radius: eType === 4 ? 40 : 16 });
               world.addComponent(exp, Sprite, {
-                spriteType: 10, frame: 0, animTimer: 0, flipX: 0,
+                spriteType: 10, frame: 0, animTimer: expDuration, flipX: 0,
                 color: 0xFF8800,
               });
             }
@@ -622,9 +608,10 @@ function killPlayer(pEid: number, world: any, events: any, gs: any): void {
   // Spawn death explosion
   const exp = world.spawn();
   world.addComponent(exp, Position, { x: Position.x[pEid], y: Position.y[pEid] });
-  world.addComponent(exp, Explosion, { timer: 0.6, radius: 20 });
+  const deathExpDuration = 0.6;
+  world.addComponent(exp, Explosion, { timer: deathExpDuration, radius: 20 });
   world.addComponent(exp, Sprite, {
-    spriteType: 10, frame: 0, animTimer: 0, flipX: 0,
+    spriteType: 10, frame: 0, animTimer: deathExpDuration, flipX: 0,
     color: 0xFFAA00,
   });
 }
